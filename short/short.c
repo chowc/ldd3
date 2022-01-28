@@ -500,6 +500,9 @@ void short_kernelprobe(void)
 		printk("short: probe failed %i times, giving up\n", count);
 }
 
+// 如果没有发生中断，short_irq = 0；
+// 如果发生了一次中断，short_irq 是收到的中断号；
+// 如果发生了多次中断，short_irq < 0。
 irqreturn_t short_probing(int irq, void *dev_id)
 {
 	if (short_irq == 0) short_irq = irq;	/* found */
@@ -509,6 +512,7 @@ irqreturn_t short_probing(int irq, void *dev_id)
 
 void short_selfprobe(void)
 {
+    // 这些是并行接口可以使用的中断号。如果不知道设备本身可以使用的中断号，就需要对 [0, NR_IRQS-1] 所有中断号都尝试注册。
 	int trials[] = {3, 5, 7, 9, 0};
 	int tried[]  = {0, 0, 0, 0, 0};
 	int i, count = 0;
@@ -518,7 +522,7 @@ void short_selfprobe(void)
 	 * the result (0 for success, or -EBUSY) in order to only free
 	 * what has been acquired
       */
-	for (i = 0; trials[i]; i++)
+	for (i = 0; trials[i]; i++) // 将所有可以使用的中断号都尝试进行注册，然后触发一次中断，会调用到中断处理程序 short_probing
 		tried[i] = request_irq(trials[i], short_probing,
 				       0, "short probe", NULL);
 
